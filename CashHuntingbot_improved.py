@@ -1,658 +1,765 @@
-diff --git a/CashHuntingbot_improved.py b/CashHuntingbot_improved.py
---- a/CashHuntingbot_improved.py
-+++ b/CashHuntingbot_improved.py
-@@ -0,0 +1,654 @@
-+#!/usr/bin/env python3
-+"""
-+CASH HUNTERS - MASTER BOT (IMPROVED VERSION)
-+"Command and conquer the crypto world"
-+👑💰 MASTER CONTROL + PERSONAL EARNINGS 💰👑
-+"""
-+
-+import asyncio
-+import random
-+import json
-+import os
-+import logging
-+from datetime import datetime, timedelta
-+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
-+from config import config
-+
-+# Setup logging
-+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-+logger = logging.getLogger(__name__)
-+
-+# MASTER DATA
-+master_data = {
-+    'personal_earnings': 0.0,
-+    'network_commissions': 0.0,
-+    'subscription_revenue': 0.0,
-+    'active_bots': 0,
-+    'total_users': 0,
-+    'api_connections': {},
-+    'daily_stats': []
-+}
-+
-+network_bots = {}  # Track all bots in your network
-+commission_queue = []  # Pending commissions
-+
-+class MasterCashEngine:
-+    def __init__(self):
-+        self.name = "Master Cash Engine"
-+        self.commission_rate = config.MASTER_COMMISSION_RATE
-+        self.subscription_plans = config.PREMIUM_PLANS
-+    
-+    def calculate_personal_earnings(self):
-+        """Calculate your direct earnings"""
-+        # Simulate personal crypto activities
-+        airdrops = random.uniform(100, 500)
-+        faucets = random.uniform(10, 50)
-+        cashback = random.uniform(25, 150)
-+        api_profits = random.uniform(50, 200)
-+        
-+        return {
-+            'airdrops': airdrops,
-+            'faucets': faucets,
-+            'cashback': cashback,
-+            'api_profits': api_profits,
-+            'total': airdrops + faucets + cashback + api_profits
-+        }
-+    
-+    def calculate_network_commissions(self):
-+        """Calculate commissions from your bot network"""
-+        bot_earnings = random.uniform(200, 800)  # From viral bot
-+        sub_network = random.uniform(100, 400)   # From sub-bots
-+        referral_bonuses = random.uniform(50, 200)
-+        
-+        your_commission = (bot_earnings + sub_network) * self.commission_rate
-+        
-+        return {
-+            'bot_earnings': bot_earnings,
-+            'sub_network': sub_network,
-+            'referral_bonuses': referral_bonuses,
-+            'your_commission': your_commission,
-+            'total': your_commission + referral_bonuses
-+        }
-+    
-+    def get_subscription_revenue(self):
-+        """Calculate subscription income"""
-+        subscribers = random.randint(10, 50)
-+        plans = list(self.subscription_plans.keys())
-+        avg_plan = random.choice(plans)
-+        monthly_revenue = subscribers * self.subscription_plans[avg_plan]['price']
-+        
-+        return {
-+            'subscribers': subscribers,
-+            'avg_plan': avg_plan,
-+            'monthly_revenue': monthly_revenue
-+        }
-+    
-+    def get_api_status(self):
-+        """Check API connections status"""
-+        apis = {}
-+        for service in config.API_KEYS.keys():
-+            api_key = config.get_api_key(service)
-+            apis[service] = bool(api_key and api_key != 'your_' + service + '_api_key')
-+        
-+        return apis
-+
-+# Initialize master engine
-+cash_engine = MasterCashEngine()
-+
-+async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-+    user_id = update.effective_user.id
-+    
-+    # Check if user is admin
-+    if not config.is_admin(user_id):
-+        await update.message.reply_text("🚫 **ACCESS DENIED** - This is a private bot.", parse_mode='Markdown')
-+        return
-+    
-+    # Calculate current earnings
-+    personal = cash_engine.calculate_personal_earnings()
-+    network = cash_engine.calculate_network_commissions()
-+    subscriptions = cash_engine.get_subscription_revenue()
-+    
-+    # Update master data
-+    master_data['personal_earnings'] += personal['total']
-+    master_data['network_commissions'] += network['total']
-+    master_data['subscription_revenue'] += subscriptions['monthly_revenue']
-+    
-+    total_income = personal['total'] + network['total'] + subscriptions['monthly_revenue']
-+    
-+    msg = f"""👑 **MASTER CONTROL DASHBOARD** 👑
-+
-+💰 **TODAY'S EARNINGS:**
-+🎯 Personal: ${personal['total']:.2f}
-+🌐 Network: ${network['total']:.2f}
-+💳 Subscriptions: ${subscriptions['monthly_revenue']:.2f}
-+💎 **TOTAL TODAY: ${total_income:.2f}**
-+
-+📊 **EMPIRE STATUS:**
-+🤖 Active Bots: {master_data['active_bots']}
-+👥 Total Users: {master_data['total_users']}
-+📈 Growth Rate: +{random.randint(5,15)}% daily
-+
-+💵 **LIFETIME TOTALS:**
-+💰 Personal: ${master_data['personal_earnings']:.2f}
-+🏦 Network: ${master_data['network_commissions']:.2f}
-+💳 Subscriptions: ${master_data['subscription_revenue']:.2f}
-+
-+⏰ **Last Update:** {datetime.now().strftime('%H:%M:%S')}"""
-+
-+    # Main navigation keyboard
-+    kb = [
-+        [
-+            InlineKeyboardButton("💰 Personal", callback_data='personal'),
-+            InlineKeyboardButton("🌐 Network", callback_data='network')
-+        ],
-+        [
-+            InlineKeyboardButton("🔧 APIs", callback_data='apis'),
-+            InlineKeyboardButton("💸 Payouts", callback_data='payouts')
-+        ],
-+        [
-+            InlineKeyboardButton("📊 Analytics", callback_data='analytics'),
-+            InlineKeyboardButton("⚙️ Settings", callback_data='settings')
-+        ],
-+        [
-+            InlineKeyboardButton("📖 API Setup Guide", callback_data='api_guide'),
-+            InlineKeyboardButton("🆘 Help", callback_data='help')
-+        ]
-+    ]
-+    
-+    await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+
-+async def personal_earnings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-+    earnings = cash_engine.calculate_personal_earnings()
-+    
-+    msg = f"""💰 **YOUR PERSONAL CASH MACHINE** 💰
-+
-+**TODAY'S DIRECT EARNINGS:**
-+🪂 Airdrops: ${earnings['airdrops']:.2f}
-+💧 Faucets: ${earnings['faucets']:.2f}
-+💳 Cashback: ${earnings['cashback']:.2f}
-+🔌 API Profits: ${earnings['api_profits']:.2f}
-+
-+💎 **TOTAL PERSONAL: ${earnings['total']:.2f}**
-+
-+**ACTIVE SOURCES:**
-+✅ LayerZero airdrop: $200 pending
-+✅ Rakuten cashback: 5% active
-+✅ Bitcoin faucets: 12 active
-+✅ Amazon affiliates: $150/week avg
-+
-+**OPTIMIZATION TIPS:**
-+• Set up 5 more wallets (+$50/week)
-+• Add 3 more affiliate programs (+$100/week)
-+• Automate faucet claims (+$20/week)
-+
-+**NEXT ACTIONS:**
-+• Check airdrop deadlines
-+• Claim daily faucets
-+• Review cashback opportunities"""
-+
-+    kb = [
-+        [
-+            InlineKeyboardButton("🪂 Manage Airdrops", callback_data='manage_airdrops'),
-+            InlineKeyboardButton("💳 Cashback Setup", callback_data='cashback_setup')
-+        ],
-+        [
-+            InlineKeyboardButton("🤖 Automation", callback_data='automation'),
-+            InlineKeyboardButton("📊 Detailed Stats", callback_data='personal_stats')
-+        ],
-+        [
-+            InlineKeyboardButton("🔄 Refresh Data", callback_data='personal'),
-+            InlineKeyboardButton("🏠 Main Menu", callback_data='main_menu')
-+        ]
-+    ]
-+    
-+    if hasattr(update, 'callback_query') and update.callback_query:
-+        await update.callback_query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+    else:
-+        await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+
-+async def network_overview(update: Update, context: ContextTypes.DEFAULT_TYPE):
-+    network = cash_engine.calculate_network_commissions()
-+    
-+    # Simulate network stats
-+    bots_created = random.randint(15, 50)
-+    active_users = random.randint(100, 500)
-+    daily_growth = random.randint(5, 25)
-+    
-+    msg = f"""🌐 **YOUR BOT NETWORK EMPIRE** 🌐
-+
-+**NETWORK EARNINGS:**
-+🤖 Bot Commissions: ${network['your_commission']:.2f}
-+👥 Referral Bonuses: ${network['referral_bonuses']:.2f}
-+🎯 **TOTAL NETWORK: ${network['total']:.2f}**
-+
-+**EMPIRE STATS:**
-+🤖 Bots Created: {bots_created}
-+👥 Active Users: {active_users}
-+📈 Daily Growth: +{daily_growth} users
-+💰 Avg. Commission/User: ${network['total']/active_users:.2f}
-+
-+**TOP PERFORMING BOTS:**
-+🥇 AirdropHunter_v2: {random.randint(50,150)} users, ${random.randint(20,80)}/day
-+🥈 CashMachine_Pro: {random.randint(30,100)} users, ${random.randint(15,50)}/day
-+🥉 CryptoFarmer_AI: {random.randint(20,80)} users, ${random.randint(10,40)}/day
-+
-+**COMMISSION BREAKDOWN:**
-+• Direct bot earnings: {config.MASTER_COMMISSION_RATE*100:.0f}%
-+• Sub-network: 5%
-+• Referral bonuses: ${config.REFERRAL_BONUS}/each
-+• Premium subscriptions: $19-79/month"""
-+
-+    kb = [
-+        [
-+            InlineKeyboardButton("📊 Detailed Stats", callback_data='detailed_stats'),
-+            InlineKeyboardButton("🚀 Growth Tools", callback_data='growth_tools')
-+        ],
-+        [
-+            InlineKeyboardButton("💎 Premium Features", callback_data='premium_features'),
-+            InlineKeyboardButton("🤖 Create New Bot", callback_data='create_new_bot')
-+        ],
-+        [
-+            InlineKeyboardButton("🔄 Refresh Network", callback_data='network'),
-+            InlineKeyboardButton("🏠 Main Menu", callback_data='main_menu')
-+        ]
-+    ]
-+    
-+    if hasattr(update, 'callback_query') and update.callback_query:
-+        await update.callback_query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+    else:
-+        await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+
-+async def api_management(update: Update, context: ContextTypes.DEFAULT_TYPE):
-+    api_status = cash_engine.get_api_status()
-+    
-+    # Count connected APIs
-+    connected_count = sum(1 for status in api_status.values() if status)
-+    total_count = len(api_status)
-+    
-+    msg = f"""🔧 **API MANAGEMENT CENTER** 🔧
-+
-+**CONNECTION STATUS ({connected_count}/{total_count}):**"""
-+    
-+    # Add status for each API
-+    for api_name, is_connected in api_status.items():
-+        status_emoji = '🟢' if is_connected else '🔴'
-+        status_text = 'Connected' if is_connected else 'Not configured'
-+        msg += f"\n{status_emoji} {api_name.title()}: {status_text}"
-+    
-+    msg += f"""
-+
-+**API EARNINGS TODAY:**
-+💳 Rakuten: $45.20 (142 transactions)
-+🛒 Amazon: $67.80 (23 sales)
-+💧 Faucets: $12.40 (Auto-claims)
-+🪂 Airdrops: $89.60 (Monitoring)
-+
-+**API PERFORMANCE:**
-+📊 Uptime: 99.2%
-+⚡ Response Time: 145ms avg
-+💰 Revenue/API Call: $0.23
-+🔄 Daily Requests: 15,847
-+
-+**QUICK SETUP:**
-+Missing APIs? Use our setup guide to get started in minutes!"""
-+
-+    kb = [
-+        [
-+            InlineKeyboardButton("📖 API Setup Guide", callback_data='api_guide'),
-+            InlineKeyboardButton("🧪 Test All APIs", callback_data='test_apis')
-+        ],
-+        [
-+            InlineKeyboardButton("🔑 Add New API", callback_data='add_api'),
-+            InlineKeyboardButton("📈 API Analytics", callback_data='api_analytics')
-+        ],
-+        [
-+            InlineKeyboardButton("⚙️ API Settings", callback_data='api_settings'),
-+            InlineKeyboardButton("🏠 Main Menu", callback_data='main_menu')
-+        ]
-+    ]
-+    
-+    if hasattr(update, 'callback_query') and update.callback_query:
-+        await update.callback_query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+    else:
-+        await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+
-+async def api_setup_guide(update: Update, context: ContextTypes.DEFAULT_TYPE):
-+    """Show API setup guide with direct links"""
-+    
-+    msg = f"""📖 **API SETUP GUIDE** 📖
-+
-+**QUICK START APIS (FREE):**
-+🪙 CoinGecko - Crypto prices
-+🔍 Etherscan - Blockchain data
-+🔶 Binance - Trading data
-+
-+**EARNING APIS (PAID):**
-+💳 Rakuten - Cashback ($50-500/month)
-+🛒 Amazon - Affiliates ($100-1000/month)
-+
-+**SETUP DIFFICULTY:**
-+🟢 Easy: CoinGecko, Etherscan, Binance
-+🟡 Medium: Rakuten, Amazon, Coinbase
-+🔴 Advanced: Custom faucet APIs
-+
-+**ESTIMATED SETUP TIME:**
-+• Free APIs: 5-10 minutes each
-+• Earning APIs: 30-60 minutes each
-+• Full setup: 2-4 hours total
-+
-+**EARNING POTENTIAL:**
-+💰 Monthly: $150-1500+
-+🚀 Scaling: Unlimited with more users
-+
-+**NEXT STEPS:**
-+1. Start with free APIs for testing
-+2. Add earning APIs once working
-+3. Scale with more bot users
-+4. Monitor and optimize regularly"""
-+
-+    kb = [
-+        [
-+            InlineKeyboardButton("🤖 Telegram Bot Setup", callback_data='telegram_setup'),
-+            InlineKeyboardButton("💳 Rakuten Setup", callback_data='rakuten_setup')
-+        ],
-+        [
-+            InlineKeyboardButton("🛒 Amazon Setup", callback_data='amazon_setup'),
-+            InlineKeyboardButton("🪙 Crypto APIs", callback_data='crypto_setup')
-+        ],
-+        [
-+            InlineKeyboardButton("📋 Full Guide (External)", url='https://github.com/05Z3r0C0d3/Cash-Hunters/blob/main/API_SETUP_GUIDE.md'),
-+        ],
-+        [
-+            InlineKeyboardButton("🔄 Back to APIs", callback_data='apis'),
-+            InlineKeyboardButton("🏠 Main Menu", callback_data='main_menu')
-+        ]
-+    ]
-+    
-+    if hasattr(update, 'callback_query') and update.callback_query:
-+        await update.callback_query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+    else:
-+        await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+
-+async def telegram_setup_guide(update: Update, context: ContextTypes.DEFAULT_TYPE):
-+    """Detailed Telegram bot setup"""
-+    
-+    msg = f"""🤖 **TELEGRAM BOT SETUP** 🤖
-+
-+**STEP 1: Create Master Bot**
-+1. Message @BotFather
-+2. Send `/newbot`
-+3. Name: `YourName Cash Master`
-+4. Username: `yournamemaster_bot`
-+5. Copy token → MASTER_BOT_TOKEN
-+
-+**STEP 2: Create Public Bot**  
-+1. Send `/newbot` again
-+2. Name: `YourName Flash Cash`
-+3. Username: `yournameflash_bot`
-+4. Copy token → PUBLIC_BOT_TOKEN
-+
-+**STEP 3: Get Your User ID**
-+1. Message @userinfobot
-+2. Copy your User ID
-+3. Use as ADMIN_ID in .env
-+
-+**STEP 4: Bot Settings**
-+```
-+/setdescription - Set bot description
-+/setabouttext - Set about text  
-+/setuserpic - Upload bot avatar
-+/setcommands - Set bot commands
-+```
-+
-+**STEP 5: Test Connection**
-+Send `/start` to both bots to verify they work.
-+
-+**⚠️ SECURITY:**
-+• Never share bot tokens
-+• Use environment variables
-+• Enable 2FA on Telegram"""
-+
-+    kb = [
-+        [
-+            InlineKeyboardButton("📱 Open @BotFather", url='https://t.me/BotFather'),
-+            InlineKeyboardButton("🆔 Get User ID", url='https://t.me/userinfobot')
-+        ],
-+        [
-+            InlineKeyboardButton("🔄 Back to Guide", callback_data='api_guide'),
-+            InlineKeyboardButton("➡️ Next: Rakuten", callback_data='rakuten_setup')
-+        ]
-+    ]
-+    
-+    await update.callback_query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+
-+async def rakuten_setup_guide(update: Update, context: ContextTypes.DEFAULT_TYPE):
-+    """Detailed Rakuten setup"""
-+    
-+    msg = f"""💳 **RAKUTEN ADVERTISING SETUP** 💳
-+
-+**💰 EARNING POTENTIAL: $50-500/month**
-+
-+**STEP 1: Publisher Application**
-+1. Visit advertising.rakuten.com
-+2. Click "Join Now" → "Publisher"
-+3. Fill application form:
-+   • Website: Your Telegram channel
-+   • Traffic: Social Media/Telegram
-+   • Monthly visitors: 1000+
-+
-+**STEP 2: Get Approved (1-7 days)**
-+• Create active Telegram channel first
-+• Post crypto/cashback content
-+• Show engagement (likes, comments)
-+
-+**STEP 3: API Access**
-+1. Login to dashboard
-+2. Tools → API section
-+3. Request API access
-+4. Get API credentials
-+
-+**STEP 4: Integration**
-+• Add API key to .env file
-+• Test with sample requests
-+• Monitor earnings in dashboard
-+
-+**💡 PRO TIPS:**
-+• Start with free tier
-+• Focus on cashback offers
-+• Promote to your bot users
-+• Scale with more channels"""
-+
-+    kb = [
-+        [
-+            InlineKeyboardButton("🔗 Join Rakuten", url='https://advertising.rakuten.com/'),
-+            InlineKeyboardButton("📊 View Dashboard", url='https://advertising.rakuten.com/publishers/dashboard')
-+        ],
-+        [
-+            InlineKeyboardButton("⬅️ Back: Telegram", callback_data='telegram_setup'),
-+            InlineKeyboardButton("➡️ Next: Amazon", callback_data='amazon_setup')
-+        ]
-+    ]
-+    
-+    await update.callback_query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+
-+async def payout_center(update: Update, context: ContextTypes.DEFAULT_TYPE):
-+    available = master_data['personal_earnings'] + master_data['network_commissions']
-+    pending = random.uniform(100, 500)
-+    
-+    msg = f"""💸 **MASTER PAYOUT CENTER** 💸
-+
-+💰 **AVAILABLE FOR WITHDRAWAL:**
-+💎 Total Available: ${available:.2f}
-+⏳ Pending: ${pending:.2f}
-+🏦 Last Payout: ${random.randint(200,800)} (Aug 10)
-+
-+**WITHDRAWAL METHODS:**
-+💳 PayPal: Instant (2% fee)
-+🏦 Bank Transfer: 1-2 days (Free)
-+₿ Crypto Wallet: 5 mins ($3 fee)
-+🎁 Gift Cards: Instant (Free)
-+
-+**PAYOUT SCHEDULE:**
-+📅 Weekly: Every Friday 5PM
-+💰 Minimum: $50.00
-+⚡ Express: Available 24/7 (+$5 fee)
-+
-+**THIS WEEK'S EARNINGS:**
-+Mon: $127.45 | Tue: $89.20 | Wed: $156.80
-+Thu: $203.15 | Fri: $178.90 | Sat: $145.60
-+Sun: $98.30
-+
-+💎 **WEEKLY TOTAL: $999.40**
-+
-+**RECENT PAYOUTS:**
-+Aug 10: $756.20 → PayPal ✅
-+Aug 3: $623.80 → Bank ✅  
-+Jul 27: $891.45 → Crypto ✅"""
-+
-+    kb = [
-+        [
-+            InlineKeyboardButton("💸 Withdraw Now", callback_data='withdraw_now'),
-+            InlineKeyboardButton("⚙️ Payout Settings", callback_data='payout_settings')
-+        ],
-+        [
-+            InlineKeyboardButton("📊 Tax Reports", callback_data='tax_reports'),
-+            InlineKeyboardButton("📈 Earnings History", callback_data='earnings_history')
-+        ],
-+        [
-+            InlineKeyboardButton("🔄 Refresh Balance", callback_data='payouts'),
-+            InlineKeyboardButton("🏠 Main Menu", callback_data='main_menu')
-+        ]
-+    ]
-+    
-+    if hasattr(update, 'callback_query') and update.callback_query:
-+        await update.callback_query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+    else:
-+        await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+
-+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-+    query = update.callback_query
-+    await query.answer()
-+    
-+    user_id = query.from_user.id
-+    
-+    # Check admin access for all callbacks
-+    if not config.is_admin(user_id):
-+        await query.edit_message_text("🚫 **ACCESS DENIED** - This is a private bot.", parse_mode='Markdown')
-+        return
-+    
-+    # Main navigation
-+    if query.data == 'main_menu':
-+        await admin_start(query, context)
-+    elif query.data == 'personal':
-+        await personal_earnings(query, context)
-+    elif query.data == 'network':
-+        await network_overview(query, context)
-+    elif query.data == 'apis':
-+        await api_management(query, context)
-+    elif query.data == 'payouts':
-+        await payout_center(query, context)
-+    
-+    # API Guide navigation
-+    elif query.data == 'api_guide':
-+        await api_setup_guide(query, context)
-+    elif query.data == 'telegram_setup':
-+        await telegram_setup_guide(query, context)
-+    elif query.data == 'rakuten_setup':
-+        await rakuten_setup_guide(query, context)
-+    
-+    # Withdrawal simulation
-+    elif query.data == 'withdraw_now':
-+        amount = random.uniform(200, 800)
-+        
-+        success_msg = f"""✅ **WITHDRAWAL PROCESSED!**
-+
-+💰 **Amount:** ${amount:.2f}
-+📧 **Method:** PayPal
-+⏰ **Processing:** 1-2 hours
-+📄 **Transaction ID:** TXN{random.randint(100000,999999)}
-+
-+💡 **What's next:**
-+• Check PayPal for incoming payment
-+• Continue earning with active bots
-+• Weekly payout scheduled for Friday
-+
-+🎯 **Keep building your empire!**
-+Your network is generating ${random.randint(50,150)}/day"""
-+        
-+        kb = [
-+            [InlineKeyboardButton("🏠 Main Menu", callback_data='main_menu')],
-+            [InlineKeyboardButton("📊 View Earnings", callback_data='personal')]
-+        ]
-+        
-+        await query.edit_message_text(success_msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+    
-+    # Help section
-+    elif query.data == 'help':
-+        help_msg = f"""🆘 **CASH HUNTERS HELP CENTER** 🆘
-+
-+**QUICK COMMANDS:**
-+/start - Main dashboard
-+/personal - Personal earnings
-+/network - Network overview
-+/apis - API management
-+/payouts - Withdrawal center
-+
-+**GETTING STARTED:**
-+1. Set up your APIs using the guide
-+2. Configure your .env file
-+3. Launch your public bot
-+4. Share and grow your network
-+
-+**SUPPORT CHANNELS:**
-+📧 Email: support@cashhunters.com
-+💬 Telegram: @cashhunters_support
-+📚 Docs: github.com/05Z3r0C0d3/Cash-Hunters
-+
-+**TROUBLESHOOTING:**
-+• Bot not responding → Check tokens
-+• APIs failing → Verify keys
-+• No earnings → Check connections
-+• Commission issues → Restart bots"""
-+
-+        kb = [
-+            [InlineKeyboardButton("📖 Full Documentation", url='https://github.com/05Z3r0C0d3/Cash-Hunters')],
-+            [InlineKeyboardButton("🏠 Main Menu", callback_data='main_menu')]
-+        ]
-+        
-+        await query.edit_message_text(help_msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
-+
-+def main():
-+    print("👑 CASH HUNTERS - MASTER BOT (IMPROVED) starting...")
-+    print("💰 Your personal cash machine + empire control!")
-+    
-+    # Validate configuration
-+    try:
-+        if not config.MASTER_BOT_TOKEN:
-+            raise ValueError("MASTER_BOT_TOKEN not configured")
-+        if not config.ADMIN_ID:
-+            raise ValueError("ADMIN_ID not configured")
-+    except Exception as e:
-+        print(f"❌ Configuration error: {e}")
-+        print("💡 Please check your .env file and API_SETUP_GUIDE.md")
-+        return
-+    
-+    app = Application.builder().token(config.MASTER_BOT_TOKEN).build()
-+    
-+    # Admin commands
-+    app.add_handler(CommandHandler("start", admin_start))
-+    app.add_handler(CommandHandler("personal", personal_earnings))
-+    app.add_handler(CommandHandler("network", network_overview))
-+    app.add_handler(CommandHandler("apis", api_management))
-+    app.add_handler(CommandHandler("payouts", payout_center))
-+    app.add_handler(CallbackQueryHandler(button_handler))
-+    
-+    print("🔥 MASTER BOT IS LIVE!")
-+    print("👑 Your empire control center activated!")
-+    print(f"💰 Ready to generate serious money!")
-+    print(f"🔧 Admin ID: {config.ADMIN_ID}")
-+    
-+    app.run_polling()
-+
-+if __name__ == '__main__':
-+    main()
+#!/usr/bin/env python3
+"""
+CASH HUNTERS - MASTER BOT (IMPROVED VERSION)
+"Command and conquer the crypto world"
+👑💰 MASTER CONTROL + PERSONAL EARNINGS 💰👑
+
+This is the master control bot for your Cash Hunters network.
+Only you (the admin) should have access to this bot.
+"""
+
+import asyncio
+import json
+import logging
+import os
+import random
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
+from decimal import Decimal
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application, 
+    CommandHandler, 
+    CallbackQueryHandler, 
+    ContextTypes,
+    MessageHandler,
+    filters
+)
+
+from config import config
+
+# ===============================================
+# LOGGING SETUP
+# ===============================================
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(config.LOG_FILE),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# ===============================================
+# MASTER DATA STORAGE
+# ===============================================
+master_data = {
+    'personal_earnings': Decimal('0.00'),
+    'network_commissions': Decimal('0.00'),
+    'subscription_revenue': Decimal('0.00'),
+    'active_bots': 0,
+    'total_users': 0,
+    'api_connections': {},
+    'daily_stats': [],
+    'last_update': datetime.now().isoformat()
+}
+
+network_bots = {}  # Track all bots in your network
+commission_queue = []  # Pending commissions
+user_sessions = {}  # Track user sessions for rate limiting
+
+# ===============================================
+# MASTER CASH ENGINE CLASS
+# ===============================================
+class MasterCashEngine:
+    """Advanced earning calculation engine for master bot"""
+    
+    def __init__(self):
+        self.name = "Master Cash Engine"
+        self.commission_rate = config.MASTER_COMMISSION_RATE
+        self.subscription_plans = config.PREMIUM_PLANS
+        self.api_multipliers = {
+            'rakuten': 2.5,
+            'amazon': 3.0,
+            'coingecko': 1.2,
+            'binance': 1.8,
+            'etherscan': 1.1
+        }
+    
+    def calculate_personal_earnings(self) -> Dict[str, float]:
+        """Calculate your direct personal earnings"""
+        try:
+            # Base earnings simulation (replace with real API calls)
+            base_airdrops = random.uniform(50, 300)
+            base_faucets = random.uniform(5, 25)
+            base_cashback = random.uniform(20, 100)
+            base_api_profits = random.uniform(15, 75)
+            
+            # Apply API multipliers if keys are available
+            available_apis = config.list_available_apis()
+            multiplier = 1.0
+            
+            for api in available_apis:
+                if api in self.api_multipliers:
+                    multiplier += self.api_multipliers[api] - 1.0
+            
+            earnings = {
+                'airdrops': base_airdrops * multiplier,
+                'faucets': base_faucets * multiplier,
+                'cashback': base_cashback * multiplier,
+                'api_profits': base_api_profits * multiplier,
+                'multiplier': multiplier,
+                'available_apis': len(available_apis)
+            }
+            
+            earnings['total'] = sum([
+                earnings['airdrops'],
+                earnings['faucets'], 
+                earnings['cashback'],
+                earnings['api_profits']
+            ])
+            
+            logger.info(f"Personal earnings calculated: ${earnings['total']:.2f}")
+            return earnings
+            
+        except Exception as e:
+            logger.error(f"Error calculating personal earnings: {e}")
+            return {
+                'airdrops': 0.0, 'faucets': 0.0, 'cashback': 0.0,
+                'api_profits': 0.0, 'total': 0.0, 'multiplier': 1.0,
+                'available_apis': 0
+            }
+    
+    def calculate_network_commissions(self) -> Dict[str, float]:
+        """Calculate commissions from your bot network"""
+        try:
+            # Simulate network activity (replace with real data)
+            active_users = random.randint(50, 500)
+            avg_earning_per_user = random.uniform(10, 50)
+            total_network_earnings = active_users * avg_earning_per_user
+            
+            commission = total_network_earnings * self.commission_rate
+            
+            network_stats = {
+                'active_users': active_users,
+                'avg_earning_per_user': avg_earning_per_user,
+                'total_network_earnings': total_network_earnings,
+                'commission_rate': self.commission_rate,
+                'total': commission
+            }
+            
+            logger.info(f"Network commissions calculated: ${commission:.2f}")
+            return network_stats
+            
+        except Exception as e:
+            logger.error(f"Error calculating network commissions: {e}")
+            return {
+                'active_users': 0, 'avg_earning_per_user': 0.0,
+                'total_network_earnings': 0.0, 'commission_rate': 0.0,
+                'total': 0.0
+            }
+    
+    def get_subscription_revenue(self) -> Dict[str, Any]:
+        """Calculate revenue from premium subscriptions"""
+        try:
+            # Simulate subscription data (replace with real data)
+            subscribers = {
+                'flash': random.randint(10, 50),
+                'turbo': random.randint(5, 25),
+                'elite': random.randint(1, 10)
+            }
+            
+            monthly_revenue = 0.0
+            for plan, count in subscribers.items():
+                plan_price = self.subscription_plans[plan]['price']
+                monthly_revenue += count * plan_price
+            
+            return {
+                'subscribers': subscribers,
+                'monthly_revenue': monthly_revenue,
+                'total_subscribers': sum(subscribers.values())
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating subscription revenue: {e}")
+            return {
+                'subscribers': {'flash': 0, 'turbo': 0, 'elite': 0},
+                'monthly_revenue': 0.0,
+                'total_subscribers': 0
+            }
+
+# ===============================================
+# UTILITY FUNCTIONS
+# ===============================================
+def save_master_data():
+    """Save master data to file"""
+    try:
+        # Convert Decimal objects to float for JSON serialization
+        data_to_save = master_data.copy()
+        for key, value in data_to_save.items():
+            if isinstance(value, Decimal):
+                data_to_save[key] = float(value)
+        
+        with open('master_data.json', 'w') as f:
+            json.dump(data_to_save, f, indent=2, default=str)
+        logger.info("Master data saved successfully")
+    except Exception as e:
+        logger.error(f"Error saving master data: {e}")
+
+def load_master_data():
+    """Load master data from file"""
+    global master_data
+    try:
+        if os.path.exists('master_data.json'):
+            with open('master_data.json', 'r') as f:
+                loaded_data = json.load(f)
+            
+            # Convert float values back to Decimal
+            for key in ['personal_earnings', 'network_commissions', 'subscription_revenue']:
+                if key in loaded_data:
+                    master_data[key] = Decimal(str(loaded_data[key]))
+            
+            # Update other fields
+            for key in ['active_bots', 'total_users', 'api_connections', 'daily_stats']:
+                if key in loaded_data:
+                    master_data[key] = loaded_data[key]
+            
+            logger.info("Master data loaded successfully")
+    except Exception as e:
+        logger.error(f"Error loading master data: {e}")
+
+def check_rate_limit(user_id: int) -> bool:
+    """Check if user is within rate limits"""
+    current_time = datetime.now()
+    if user_id not in user_sessions:
+        user_sessions[user_id] = []
+    
+    # Remove old requests (older than 1 minute)
+    user_sessions[user_id] = [
+        timestamp for timestamp in user_sessions[user_id]
+        if current_time - timestamp < timedelta(minutes=1)
+    ]
+    
+    # Check if user exceeded rate limit
+    if len(user_sessions[user_id]) >= config.RATE_LIMIT_PER_MINUTE:
+        return False
+    
+    # Add current request
+    user_sessions[user_id].append(current_time)
+    return True
+
+# ===============================================
+# INITIALIZE COMPONENTS
+# ===============================================
+cash_engine = MasterCashEngine()
+load_master_data()
+
+# ===============================================
+# BOT HANDLERS
+# ===============================================
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /start command - Admin only access"""
+    user_id = update.effective_user.id
+    
+    # Check admin access
+    if not config.is_admin(user_id):
+        await update.message.reply_text(
+            "🚫 **ACCESS DENIED**\n\n"
+            "This is a private master control bot.\n"
+            "Only the network administrator has access.",
+            parse_mode='Markdown'
+        )
+        logger.warning(f"Unauthorized access attempt from user {user_id}")
+        return
+    
+    # Check rate limiting
+    if not check_rate_limit(user_id):
+        await update.message.reply_text(
+            "⏰ **Rate Limit Exceeded**\n\n"
+            f"Please wait before making more requests.\n"
+            f"Limit: {config.RATE_LIMIT_PER_MINUTE} requests per minute.",
+            parse_mode='Markdown'
+        )
+        return
+    
+    try:
+        # Calculate current earnings
+        personal = cash_engine.calculate_personal_earnings()
+        network = cash_engine.calculate_network_commissions()
+        subscriptions = cash_engine.get_subscription_revenue()
+        
+        # Update master data
+        master_data['personal_earnings'] += Decimal(str(personal['total']))
+        master_data['network_commissions'] += Decimal(str(network['total']))
+        master_data['subscription_revenue'] += Decimal(str(subscriptions['monthly_revenue']))
+        master_data['last_update'] = datetime.now().isoformat()
+        
+        total_today = personal['total'] + network['total'] + subscriptions['monthly_revenue']
+        
+        # Create dashboard message
+        msg = f"""👑 **MASTER CONTROL DASHBOARD** 👑
+
+💰 **TODAY'S EARNINGS:**
+🎯 Personal: ${personal['total']:.2f}
+🌐 Network: ${network['total']:.2f} ({network['active_users']} users)
+💳 Subscriptions: ${subscriptions['monthly_revenue']:.2f}
+💎 **TOTAL TODAY: ${total_today:.2f}**
+
+📊 **EMPIRE STATUS:**
+🤖 Active Bots: {master_data['active_bots']}
+👥 Total Users: {network['active_users']}
+📈 API Multiplier: {personal['multiplier']:.1f}x
+🔗 Connected APIs: {personal['available_apis']}
+
+💵 **LIFETIME TOTALS:**
+💰 Personal: ${master_data['personal_earnings']:.2f}
+🏦 Network: ${master_data['network_commissions']:.2f}
+💳 Subscriptions: ${master_data['subscription_revenue']:.2f}
+
+⏰ **Last Update:** {datetime.now().strftime('%H:%M:%S')}
+🌟 **Status:** All Systems Operational"""
+
+        # Main navigation keyboard
+        keyboard = [
+            [
+                InlineKeyboardButton("💰 Personal Earnings", callback_data='personal'),
+                InlineKeyboardButton("🌐 Network Overview", callback_data='network')
+            ],
+            [
+                InlineKeyboardButton("🔧 API Management", callback_data='apis'),
+                InlineKeyboardButton("💸 Payout Center", callback_data='payouts')
+            ],
+            [
+                InlineKeyboardButton("📊 Analytics", callback_data='analytics'),
+                InlineKeyboardButton("⚙️ Settings", callback_data='settings')
+            ],
+            [
+                InlineKeyboardButton("📖 Setup Guide", callback_data='guide'),
+                InlineKeyboardButton("🆘 Help & Support", callback_data='help')
+            ],
+            [
+                InlineKeyboardButton("🔄 Refresh Data", callback_data='refresh')
+            ]
+        ]
+        
+        await update.message.reply_text(
+            msg, 
+            reply_markup=InlineKeyboardMarkup(keyboard), 
+            parse_mode='Markdown'
+        )
+        
+        # Save updated data
+        save_master_data()
+        
+        logger.info(f"Dashboard accessed by admin {user_id}")
+        
+    except Exception as e:
+        logger.error(f"Error in start_command: {e}")
+        await update.message.reply_text(
+            "❌ **System Error**\n\n"
+            "An error occurred while loading the dashboard.\n"
+            "Please try again or contact support.",
+            parse_mode='Markdown'
+        )
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle inline button presses"""
+    query = update.callback_query
+    user_id = query.from_user.id
+    
+    # Check admin access
+    if not config.is_admin(user_id):
+        await query.answer("🚫 Access denied", show_alert=True)
+        return
+    
+    # Check rate limiting
+    if not check_rate_limit(user_id):
+        await query.answer("⏰ Rate limit exceeded", show_alert=True)
+        return
+    
+    await query.answer()
+    
+    try:
+        data = query.data
+        
+        if data == 'personal':
+            await handle_personal_earnings(query)
+        elif data == 'network':
+            await handle_network_overview(query)
+        elif data == 'apis':
+            await handle_api_management(query)
+        elif data == 'payouts':
+            await handle_payout_center(query)
+        elif data == 'analytics':
+            await handle_analytics(query)
+        elif data == 'settings':
+            await handle_settings(query)
+        elif data == 'guide':
+            await handle_setup_guide(query)
+        elif data == 'help':
+            await handle_help_support(query)
+        elif data == 'refresh':
+            await handle_refresh_data(query)
+        elif data == 'back_to_main':
+            await handle_back_to_main(query)
+        else:
+            await query.edit_message_text("❓ Unknown command")
+            
+    except Exception as e:
+        logger.error(f"Error in button_handler: {e}")
+        await query.edit_message_text(
+            "❌ **Error**\n\n"
+            "An error occurred while processing your request.\n"
+            "Please try again."
+        )
+
+# ===============================================
+# BUTTON HANDLER FUNCTIONS
+# ===============================================
+async def handle_personal_earnings(query):
+    """Handle personal earnings view"""
+    earnings = cash_engine.calculate_personal_earnings()
+    
+    msg = f"""💰 **YOUR PERSONAL CASH MACHINE** 💰
+
+**TODAY'S DIRECT EARNINGS:**
+🪂 Airdrops: ${earnings['airdrops']:.2f}
+💧 Faucets: ${earnings['faucets']:.2f}
+💳 Cashback: ${earnings['cashback']:.2f}
+🔌 API Profits: ${earnings['api_profits']:.2f}
+
+💎 **TOTAL PERSONAL: ${earnings['total']:.2f}**
+
+**PERFORMANCE STATS:**
+📊 API Multiplier: {earnings['multiplier']:.1f}x
+🔗 Connected APIs: {earnings['available_apis']}
+📈 Efficiency: {(earnings['multiplier'] - 1) * 100:.0f}% boost
+
+**ACTIVE SOURCES:**
+✅ LayerZero airdrop: $200 pending
+✅ Rakuten cashback: 5% active
+✅ Bitcoin faucets: 12 active
+✅ Amazon affiliates: $150/week avg
+
+**OPTIMIZATION TIPS:**
+• Set up 5 more wallets (+$50/week)
+• Add 3 more affiliate programs (+$100/week)
+• Automate faucet claims (+$20/week)"""
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🪂 Manage Airdrops", callback_data='manage_airdrops'),
+            InlineKeyboardButton("💳 Cashback Setup", callback_data='cashback_setup')
+        ],
+        [
+            InlineKeyboardButton("🤖 Automation", callback_data='automation'),
+            InlineKeyboardButton("📊 Detailed Stats", callback_data='detailed_stats')
+        ],
+        [
+            InlineKeyboardButton("🔙 Back to Main", callback_data='back_to_main')
+        ]
+    ]
+    
+    await query.edit_message_text(
+        msg, 
+        reply_markup=InlineKeyboardMarkup(keyboard), 
+        parse_mode='Markdown'
+    )
+
+async def handle_network_overview(query):
+    """Handle network overview"""
+    network = cash_engine.calculate_network_commissions()
+    
+    msg = f"""🌐 **NETWORK EMPIRE OVERVIEW** 🌐
+
+**NETWORK PERFORMANCE:**
+👥 Active Users: {network['active_users']}
+💰 Avg Earning/User: ${network['avg_earning_per_user']:.2f}
+📊 Total Network Volume: ${network['total_network_earnings']:.2f}
+💵 Your Commission: ${network['total']:.2f} ({network['commission_rate']*100:.1f}%)
+
+**BOT NETWORK STATUS:**
+🤖 Master Bots: 1 (This one)
+⚡ Public Bots: {master_data['active_bots']}
+🌐 Total Users: {network['active_users']}
+📈 Growth Rate: +{random.randint(5,15)}% daily
+
+**TOP PERFORMING BOTS:**
+🥇 FlashCash Bot #1: 127 users, $2,340/day
+🥈 FlashCash Bot #2: 89 users, $1,670/day
+🥉 FlashCash Bot #3: 76 users, $1,420/day
+
+**COMMISSION BREAKDOWN:**
+💰 Today: ${network['total']:.2f}
+📅 This Week: ${network['total'] * 7:.2f}
+📊 This Month: ${network['total'] * 30:.2f}
+
+**EXPANSION OPPORTUNITIES:**
+• Launch 3 more public bots (+200 users)
+• Target crypto Telegram groups (+500 users)
+• Implement referral bonuses (+30% growth)"""
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🤖 Manage Bots", callback_data='manage_bots'),
+            InlineKeyboardButton("👥 User Analytics", callback_data='user_analytics')
+        ],
+        [
+            InlineKeyboardButton("💰 Commission History", callback_data='commission_history'),
+            InlineKeyboardButton("🚀 Expansion Plans", callback_data='expansion')
+        ],
+        [
+            InlineKeyboardButton("🔙 Back to Main", callback_data='back_to_main')
+        ]
+    ]
+    
+    await query.edit_message_text(
+        msg, 
+        reply_markup=InlineKeyboardMarkup(keyboard), 
+        parse_mode='Markdown'
+    )
+
+async def handle_api_management(query):
+    """Handle API management"""
+    available_apis = config.list_available_apis()
+    all_apis = list(config.API_KEYS.keys())
+    
+    msg = f"""🔧 **API MANAGEMENT CENTER** 🔧
+
+**CONNECTION STATUS:**
+"""
+    
+    for api in all_apis:
+        status = "✅ Connected" if api in available_apis else "❌ Not Connected"
+        multiplier = cash_engine.api_multipliers.get(api, 1.0)
+        msg += f"• {api.title()}: {status} ({multiplier:.1f}x boost)\n"
+    
+    msg += f"""
+**PERFORMANCE IMPACT:**
+📊 Current Multiplier: {1.0 + sum(cash_engine.api_multipliers.get(api, 0) - 1 for api in available_apis):.1f}x
+💰 Earning Boost: {len(available_apis) * 20}% average
+🔗 Connected APIs: {len(available_apis)}/{len(all_apis)}
+
+**EARNING POTENTIAL BY API:**
+💳 Rakuten: $50-500/month (Cashback)
+🛒 Amazon: $100-1000/month (Affiliates)
+🪙 CoinGecko: $20-100/month (Price data)
+🔶 Binance: $30-200/month (Trading data)
+⚡ Etherscan: $10-50/month (Blockchain data)
+
+**SETUP PRIORITY:**
+🥇 High Priority: Rakuten, Amazon (Big money)
+🥈 Medium Priority: Binance, CoinGecko
+🥉 Low Priority: Etherscan (Free tier sufficient)
+
+**QUICK ACTIONS:**
+• Test all connected APIs
+• Check rate limits and usage
+• Rotate API keys if needed"""
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🔍 Test APIs", callback_data='test_apis'),
+            InlineKeyboardButton("📊 Usage Stats", callback_data='api_stats')
+        ],
+        [
+            InlineKeyboardButton("🔑 Manage Keys", callback_data='manage_keys'),
+            InlineKeyboardButton("📖 Setup Guide", callback_data='api_setup_guide')
+        ],
+        [
+            InlineKeyboardButton("🔙 Back to Main", callback_data='back_to_main')
+        ]
+    ]
+    
+    await query.edit_message_text(
+        msg, 
+        reply_markup=InlineKeyboardMarkup(keyboard), 
+        parse_mode='Markdown'
+    )
+
+async def handle_refresh_data(query):
+    """Handle data refresh"""
+    try:
+        # Recalculate all earnings
+        personal = cash_engine.calculate_personal_earnings()
+        network = cash_engine.calculate_network_commissions()
+        subscriptions = cash_engine.get_subscription_revenue()
+        
+        # Update master data
+        master_data['last_update'] = datetime.now().isoformat()
+        save_master_data()
+        
+        await query.answer("✅ Data refreshed successfully!", show_alert=True)
+        
+        # Return to main dashboard
+        await handle_back_to_main(query)
+        
+    except Exception as e:
+        logger.error(f"Error refreshing data: {e}")
+        await query.answer("❌ Error refreshing data", show_alert=True)
+
+async def handle_back_to_main(query):
+    """Handle back to main dashboard"""
+    # Simulate the start command logic
+    personal = cash_engine.calculate_personal_earnings()
+    network = cash_engine.calculate_network_commissions()
+    subscriptions = cash_engine.get_subscription_revenue()
+    
+    total_today = personal['total'] + network['total'] + subscriptions['monthly_revenue']
+    
+    msg = f"""👑 **MASTER CONTROL DASHBOARD** 👑
+
+💰 **TODAY'S EARNINGS:**
+🎯 Personal: ${personal['total']:.2f}
+🌐 Network: ${network['total']:.2f} ({network['active_users']} users)
+💳 Subscriptions: ${subscriptions['monthly_revenue']:.2f}
+💎 **TOTAL TODAY: ${total_today:.2f}**
+
+📊 **EMPIRE STATUS:**
+🤖 Active Bots: {master_data['active_bots']}
+👥 Total Users: {network['active_users']}
+📈 API Multiplier: {personal['multiplier']:.1f}x
+🔗 Connected APIs: {personal['available_apis']}
+
+💵 **LIFETIME TOTALS:**
+💰 Personal: ${master_data['personal_earnings']:.2f}
+🏦 Network: ${master_data['network_commissions']:.2f}
+💳 Subscriptions: ${master_data['subscription_revenue']:.2f}
+
+⏰ **Last Update:** {datetime.now().strftime('%H:%M:%S')}
+🌟 **Status:** All Systems Operational"""
+
+    keyboard = [
+        [
+            InlineKeyboardButton("💰 Personal Earnings", callback_data='personal'),
+            InlineKeyboardButton("🌐 Network Overview", callback_data='network')
+        ],
+        [
+            InlineKeyboardButton("🔧 API Management", callback_data='apis'),
+            InlineKeyboardButton("💸 Payout Center", callback_data='payouts')
+        ],
+        [
+            InlineKeyboardButton("📊 Analytics", callback_data='analytics'),
+            InlineKeyboardButton("⚙️ Settings", callback_data='settings')
+        ],
+        [
+            InlineKeyboardButton("📖 Setup Guide", callback_data='guide'),
+            InlineKeyboardButton("🆘 Help & Support", callback_data='help')
+        ],
+        [
+            InlineKeyboardButton("🔄 Refresh Data", callback_data='refresh')
+        ]
+    ]
+    
+    await query.edit_message_text(
+        msg, 
+        reply_markup=InlineKeyboardMarkup(keyboard), 
+        parse_mode='Markdown'
+    )
+
+# Placeholder handlers for other buttons (implement as needed)
+async def handle_payout_center(query):
+    await query.edit_message_text("💸 **Payout Center** - Coming Soon!\n\nThis feature will allow you to withdraw your earnings.")
+
+async def handle_analytics(query):
+    await query.edit_message_text("📊 **Analytics** - Coming Soon!\n\nDetailed analytics and reporting will be available here.")
+
+async def handle_settings(query):
+    await query.edit_message_text("⚙️ **Settings** - Coming Soon!\n\nBot configuration and preferences will be available here.")
+
+async def handle_setup_guide(query):
+    await query.edit_message_text("📖 **Setup Guide** - Coming Soon!\n\nStep-by-step setup instructions will be available here.")
+
+async def handle_help_support(query):
+    msg = """🆘 **HELP & SUPPORT** 🆘
+
+**QUICK HELP:**
+• /start - Main dashboard
+• Check your .env file for configuration
+• Ensure all required APIs are set up
+
+**SUPPORT CHANNELS:**
+📧 Email: support@cashhunters.com
+💬 Telegram: @cashhunters_support
+📚 Documentation: GitHub Repository
+🐛 Issues: Report on GitHub
+
+**TROUBLESHOOTING:**
+• Bot not responding? Check bot token
+• APIs not working? Verify API keys
+• Low earnings? Add more API connections
+
+**STATUS:**
+🟢 All systems operational
+📊 Response time: < 1 second
+🔒 Security: Maximum"""
+    
+    keyboard = [[InlineKeyboardButton("🔙 Back to Main", callback_data='back_to_main')]]
+    
+    await query.edit_message_text(
+        msg, 
+        reply_markup=InlineKeyboardMarkup(keyboard), 
+        parse_mode='Markdown'
+    )
+
+# ===============================================
+# ERROR HANDLER
+# ===============================================
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle errors"""
+    logger.error(f"Exception while handling an update: {context.error}")
+    
+    if isinstance(update, Update) and update.effective_message:
+        try:
+            await update.effective_message.reply_text(
+                "❌ **System Error**\n\n"
+                "An unexpected error occurred. The error has been logged.\n"
+                "Please try again or contact support if the problem persists."
+            )
+        except Exception:
+            pass  # Ignore errors when trying to send error messages
+
+# ===============================================
+# MAIN FUNCTION
+# ===============================================
+async def main():
+    """Main function to run the master bot"""
+    try:
+        logger.info("Starting Cash Hunters Master Bot...")
+        
+        # Create application
+        application = Application.builder().token(config.MASTER_BOT_TOKEN).build()
+        
+        # Add handlers
+        application.add_handler(CommandHandler("start", start_command))
+        application.add_handler(CallbackQueryHandler(button_handler))
+        
+        # Add error handler
+        application.add_error_handler(error_handler)
+        
+        # Start the bot
+        if config.WEBHOOK_URL:
+            # Production mode with webhooks
+            logger.info("Starting in webhook mode")
+            await application.run_webhook(
+                listen="0.0.0.0",
+                port=config.WEBHOOK_PORT,
+                webhook_url=config.WEBHOOK_URL
+            )
+        else:
+            # Development mode with polling
+            logger.info("Starting in polling mode")
+            await application.run_polling(drop_pending_updates=True)
+            
+    except Exception as e:
+        logger.error(f"Critical error starting master bot: {e}")
+        raise
+
+if __name__ == '__main__':
+    """Entry point"""
+    try:
+        logger.info("🚀 Cash Hunters Master Bot - Starting...")
+        logger.info(f"Admin ID: {config.ADMIN_ID}")
+        logger.info(f"Environment: {config.ENVIRONMENT}")
+        logger.info(f"Debug Mode: {config.DEBUG}")
+        
+        asyncio.run(main())
+        
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+    finally:
+        logger.info("Master Bot shutdown complete")
