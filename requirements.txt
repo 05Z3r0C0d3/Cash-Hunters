@@ -1,0 +1,29 @@
+diff --git a/requirements.txt b/requirements.txt
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -0,0 +1,25 @@
++python-telegram-bot==20.7
++python-dotenv==1.0.0
++requests==2.31.0
++asyncio
++json5==0.9.14
++aiohttp==3.9.1
++redis==5.0.1
++sqlalchemy==2.0.23
++psycopg2-binary==2.9.9
++beautifulsoup4==4.12.2
++lxml==4.9.3
++pandas==2.1.4
++numpy==1.25.2
++matplotlib==3.8.2
++seaborn==0.13.0
++schedule==1.2.0
++cryptography==41.0.7
++pycryptodome==3.19.0
++web3==6.12.0
++eth-account==0.10.0
++bitcoin==1.1.42
++ccxt==4.1.64
++binance-connector==3.6.1
++coinbase==2.1.0
++pycoingecko==3.1.0
