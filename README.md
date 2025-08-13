@@ -26,11 +26,12 @@
 - **Earning Potential**: $150-1500+ monthly
 - **Auto-Testing**: Built-in API connection validation
 
-### ✅ **Commission System**
-- **Dual Bot Architecture**: Master (private) + Public (shareable)
-- **Automated Commissions**: 15% to master, 88% to users
+### ✅ **Centralized Commission System**
+- **Dual Bot Architecture**: Master (private) + Public (shared by all users)
+- **Automated Commissions**: 15% to master, 85% to users
 - **Real-time Tracking**: Live commission monitoring
-- **Scalable Network**: Unlimited bot creation
+- **NO Bot Creation**: Users cannot create their own bots (security & control)
+- **All Money Flows to You**: Complete centralized earning system
 
 ---
 
@@ -39,18 +40,18 @@
 ```
 ┌─────────────────┐    Commission (15%)    ┌─────────────────┐
 │   MASTER BOT    │◄──────────────────────│   PUBLIC BOT    │
-│   (Your Bot)    │                       │ (Users' Bot)    │
+│   (Your Bot)    │                       │ (SHARED by ALL) │
 │                 │                       │                 │
 │ • Personal      │                       │ • Flash Airdrops│
 │   Earnings      │                       │ • Flash Faucets │
-│ • Network       │                       │ • Bot Creation  │
-│   Management    │                       │ • Premium Plans │
-│ • API Control   │                       │ • User Support  │
-│ • Payouts       │                       │                 │
+│ • Network       │                       │ • Premium Plans │
+│   Management    │                       │ • User Stats    │
+│ • API Control   │                       │ • Referrals     │
+│ • Payouts       │                       │ • Support       │
 └─────────────────┘                       └─────────────────┘
         ▲                                          │
-        │                                          │
-        └──────────── You earn from both ─────────┘
+        │           ALL USERS SHARE ONE BOT        │
+        └──────────── All Money → Your Wallet ────┘
 ```
 
 ---
@@ -60,10 +61,12 @@
 ```
 Cash-Hunters/
 ├── 🤖 CashHuntingbot_improved.py      # Master Bot (Your private bot)
-├── ⚡ FlashkashBot_improved.py        # Public Bot (Share this one)
+├── ⚡ FlashkashBot_improved.py        # Public Bot (Shared by all users)
+├── 💰 payment_system.py              # Centralized payment system
 ├── 🔧 config.py                      # Secure configuration manager
 ├── 📄 .env.template                  # Environment variables template
 ├── 📖 API_SETUP_GUIDE.md             # Complete API setup guide
+├── 💸 PAYMENT_INTEGRATION_GUIDE.md   # Payment system guide
 ├── 📦 requirements.txt               # Python dependencies
 ├── 🚀 setup.py                       # Automated setup script
 └── 📋 README.md                      # This file
