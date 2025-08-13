@@ -1,0 +1,30 @@
+{
+  "master_earnings": {
+    "total_commissions": 15.0,
+    "premium_subscriptions": 0.0,
+    "api_profits": 0.0,
+    "total_earned": 15.0,
+    "total_withdrawn": 0.0,
+    "available_balance": 15.0
+  },
+  "user_earnings": {
+    "12345": {
+      "total_earned": "85.00",
+      "commissions_paid": "15.00",
+      "last_activity": "2025-08-13T14:18:02.688975"
+    }
+  },
+  "commission_history": [
+    {
+      "timestamp": "2025-08-13T14:18:02.688976",
+      "user_id": 12345,
+      "activity_type": "flash_airdrops",
+      "total_earning": 100.0,
+      "user_share": 85.0,
+      "master_commission": 15.0,
+      "commission_rate": 0.15
+    }
+  ],
+  "withdrawal_history": [],
+  "payment_queue": []
+}
